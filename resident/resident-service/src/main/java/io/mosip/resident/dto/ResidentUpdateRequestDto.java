@@ -24,6 +24,9 @@ public class ResidentUpdateRequestDto {
 	private String otp;
 
 	private String identityJson;
+	
 	private List<ResidentDocuments> documents;
+	
+	private String individualBiometrics;
 
 }

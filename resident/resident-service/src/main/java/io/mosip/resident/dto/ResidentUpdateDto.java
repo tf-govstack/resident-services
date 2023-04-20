@@ -1,6 +1,8 @@
 package io.mosip.resident.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import io.mosip.kernel.biometrics.entities.BiometricRecord;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,6 +10,7 @@ import lombok.NoArgsConstructor;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * 
@@ -44,5 +47,6 @@ public class ResidentUpdateDto implements Serializable {
 	private String proofOfIdentity;
 	private String proofOfRelationship;
 	private String proofOfDateOfBirth;
+	private Map<String, BiometricRecord> bios;
 
 }

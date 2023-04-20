@@ -91,7 +91,7 @@ public class ResidentUpdateService {
 
 	@Autowired
 	private Utilities utilities;
-	
+
 	@Autowired
 	AuditUtil audit;
 
@@ -105,16 +105,17 @@ public class ResidentUpdateService {
 	private static final String VALUE = "value";
 
 	public PacketGeneratorResDto createPacket(ResidentUpdateDto request) throws BaseCheckedException, IOException {
-		logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.UIN.toString(),
-				request.getIdValue(), "ResidentUpdateServiceImpl::createPacket()");
+		logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.UIN.toString(), request.getIdValue(),
+				"ResidentUpdateServiceImpl::createPacket()");
 		byte[] packetZipBytes = null;
 		audit.setAuditRequestDto(EventEnum.CREATE_PACKET);
 		PackerGeneratorFailureDto dto = new PackerGeneratorFailureDto();
-		if (validator.isValidCenter(request.getCenterId())
-				&& request.getIdType().equals(ResidentIndividialIDType.UIN)
-						? validator.isValidRegistrationTypeAndUin(RegistrationType.RES_UPDATE.toString(),
-								request.getIdValue())
-						: validator.isValidVid(request.getIdValue())) {
+//		if (validator.isValidCenter(request.getCenterId())
+//				&& request.getIdType().equals(ResidentIndividialIDType.UIN)
+//						? validator.isValidRegistrationTypeAndUin(RegistrationType.RES_UPDATE.toString(),
+//								request.getIdValue())
+//						: validator.isValidVid(request.getIdValue())) {
+		if (validator.isValidCenter(request.getCenterId())) {
 
 			logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.UIN.toString(),
 					request.getIdValue(),
@@ -130,7 +131,8 @@ public class ResidentUpdateService {
 
 				fields.keySet().forEach(key -> {
 					try {
-						idMap.put(key, fields.get(key) != null ? JsonUtils.javaObjectToJsonString(fields.get(key)) : null);
+						idMap.put(key,
+								fields.get(key) != null ? JsonUtils.javaObjectToJsonString(fields.get(key)) : null);
 					} catch (JsonProcessingException e) {
 						throw new BaseUncheckedException(ResidentErrorCode.JSON_PROCESSING_EXCEPTION.getErrorCode(),
 								ResidentErrorCode.JSON_PROCESSING_EXCEPTION.getErrorMessage(), e);
@@ -144,32 +146,33 @@ public class ResidentUpdateService {
 				if (request.getProofOfDateOfBirth() != null && !request.getProofOfDateOfBirth().isEmpty())
 					setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, PROOF_OF_DOB, map);
 				if (request.getProofOfRelationship() != null && !request.getProofOfRelationship().isEmpty())
-					setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, PROOF_OF_RELATIONSHIP,
-							map);
+					setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, PROOF_OF_RELATIONSHIP, map);
 				if (request.getProofOfIdentity() != null && !request.getProofOfIdentity().isEmpty())
 					setDemographicDocuments(request.getProofOfAddress(), demoJsonObject, PROOF_OF_IDENTITY, map);
 
 				PacketDto packetDto = new PacketDto();
 				packetDto.setId(generateRegistrationId(request.getCenterId(), request.getMachineId()));
 				packetDto.setSource(utilities.getDefaultSource());
-				packetDto.setProcess(RegistrationType.RES_UPDATE.toString());
+				packetDto.setProcess(RegistrationType.NEW.toString());
 				packetDto.setSchemaVersion(idschemaVersion);
 				packetDto.setSchemaJson(idSchemaUtil.getIdSchema(Double.valueOf(idschemaVersion)));
 				packetDto.setFields(idMap);
 				packetDto.setDocuments(map);
-				packetDto.setMetaInfo(getRegistrationMetaData(request.getIdValue(),
-						request.getRequestType().toString(), request.getCenterId(), request.getMachineId()));
+				packetDto.setMetaInfo(getRegistrationMetaData(request.getIdValue(), request.getRequestType().toString(),
+						request.getCenterId(), request.getMachineId()));
 				packetDto.setAudits(utilities.generateAudit(packetDto.getId()));
 				packetDto.setOfflineMode(false);
 				packetDto.setRefId(request.getCenterId() + "_" + request.getMachineId());
+				packetDto.setBiometrics(request.getBios());
 				List<PacketInfo> packetInfos = packetWriter.createPacket(packetDto);
 
 				if (CollectionUtils.isEmpty(packetInfos) || packetInfos.iterator().next().getId() == null)
-					throw new PacketCreatorException(ResidentErrorCode.PACKET_CREATION_EXCEPTION.getErrorCode(), ResidentErrorCode.PACKET_CREATION_EXCEPTION.getErrorMessage());
+					throw new PacketCreatorException(ResidentErrorCode.PACKET_CREATION_EXCEPTION.getErrorCode(),
+							ResidentErrorCode.PACKET_CREATION_EXCEPTION.getErrorMessage());
 
-				file = new File(env.getProperty("object.store.base.location")
-						+ File.separator + env.getProperty("packet.manager.account.name")
-						+ File.separator + packetInfos.iterator().next().getId() + ".zip");
+				file = new File(env.getProperty("object.store.base.location") + File.separator
+						+ env.getProperty("packet.manager.account.name") + File.separator
+						+ packetInfos.iterator().next().getId() + ".zip");
 
 				FileInputStream fis = new FileInputStream(file);
 
@@ -177,23 +180,19 @@ public class ResidentUpdateService {
 
 				String creationTime = DateUtils.formatToISOString(LocalDateTime.now());
 
-				logger.debug(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(), packetDto.getId(),
+				logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						packetDto.getId(),
 						"ResidentUpdateServiceImpl::createPacket()::packet created and sent for sync service");
 
 				PacketGeneratorResDto packerGeneratorResDto = syncUploadEncryptionService.uploadUinPacket(
-						packetDto.getId(), creationTime, request.getRequestType().toString(),
-						packetZipBytes);
+						packetDto.getId(), creationTime, request.getRequestType().toString(), packetZipBytes);
 
-				logger.debug(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(), packetDto.getId(),
-						"ResidentUpdateServiceImpl::createPacket()::packet synched and uploaded");
+				logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						packetDto.getId(), "ResidentUpdateServiceImpl::createPacket()::packet synched and uploaded");
 				return packerGeneratorResDto;
 			} catch (Exception e) {
-				logger.error(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(),
-						ResidentErrorCode.BASE_EXCEPTION.getErrorMessage(),
-						ExceptionUtils.getStackTrace(e));
+				logger.error(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
+						ResidentErrorCode.BASE_EXCEPTION.getErrorMessage(), ExceptionUtils.getStackTrace(e));
 				if (e instanceof BaseCheckedException) {
 					throw (BaseCheckedException) e;
 				}
@@ -225,7 +224,7 @@ public class ResidentUpdateService {
 	}
 
 	private Map<String, String> getRegistrationMetaData(String registrationType, String uin, String centerId,
-															String machineId) throws JsonProcessingException {
+			String machineId) throws JsonProcessingException {
 
 		Map<String, String> metadata = new HashMap<>();
 
@@ -263,22 +262,20 @@ public class ResidentUpdateService {
 		JSONObject ridJson;
 		try {
 
-			logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(),
-					"", "PacketGeneratorServiceImpl::generateRegistrationId():: RIDgeneration Api call started");
+			logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
+					"PacketGeneratorServiceImpl::generateRegistrationId():: RIDgeneration Api call started");
 			responseWrapper = (ResponseWrapper<?>) restClientService.getApi(ApiName.RIDGENERATION, pathsegments, "", "",
 					ResponseWrapper.class);
 			if (CollectionUtils.isEmpty(responseWrapper.getErrors())) {
 				ridJson = mapper.readValue(mapper.writeValueAsString(responseWrapper.getResponse()), JSONObject.class);
-				logger.debug(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(), "",
+				logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 						"\"PacketGeneratorServiceImpl::generateRegistrationId():: RIDgeneration Api call  ended with response data : "
 								+ JsonUtil.objectMapperObjectToJson(ridJson));
 				rid = (String) ridJson.get("rid");
 
 			} else {
 				List<ServiceError> error = responseWrapper.getErrors();
-				logger.debug(LoggerFileConstant.SESSIONID.toString(),
-						LoggerFileConstant.REGISTRATIONID.toString(), "",
+				logger.debug(LoggerFileConstant.SESSIONID.toString(), LoggerFileConstant.REGISTRATIONID.toString(), "",
 						"\"PacketGeneratorServiceImpl::generateRegistrationId():: RIDgeneration Api call  ended with response data : "
 								+ error.get(0).getMessage());
 				throw new BaseCheckedException(ResidentErrorCode.BASE_EXCEPTION.getErrorCode(),
