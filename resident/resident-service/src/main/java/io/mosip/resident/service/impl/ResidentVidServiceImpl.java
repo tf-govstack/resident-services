@@ -243,6 +243,14 @@ public class ResidentVidServiceImpl implements ResidentVidService {
 			} else {
 				notificationRequestDto.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_GEN_SUCCESS);
 				notificationResponseDTO = notificationService.sendNotification(notificationRequestDto);
+				
+				if(vidResponse.getRestoredVid() != null) {
+					additionalAttributes = new HashMap<>();
+					additionalAttributes.put(TemplateEnum.VID.name(), vidResponse.getRestoredVid().getVID());
+					notificationRequestDto.setAdditionalAttributes(additionalAttributes);
+					notificationRequestDto.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_REV_SUCCESS);
+					notificationResponseDTO = notificationService.sendNotification(notificationRequestDto);
+				}
 			}
 			audit.setAuditRequestDto(EventEnum.getEventEnumWithValue(EventEnum.SEND_NOTIFICATION_SUCCESS,
 					requestDto.getTransactionID(), "Request to generate VID"));
