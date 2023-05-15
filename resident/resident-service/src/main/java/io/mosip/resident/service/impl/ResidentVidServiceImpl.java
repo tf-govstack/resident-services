@@ -240,6 +240,15 @@ public class ResidentVidServiceImpl implements ResidentVidService {
 
 				notificationResponseDTO=notificationService
 						.sendNotification(notificationRequestDto, vidRequestDtoV2.getChannels(), email, phone);
+				
+				if(vidResponse.getRestoredVid()!= null) {
+					additionalAttributes = new HashMap<>();
+					additionalAttributes.put(TemplateEnum.VID.name(), vidResponse.getRestoredVid().getVID());
+					notificationRequestDtoV2.setAdditionalAttributes(additionalAttributes);
+					notificationRequestDtoV2.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_REV_SUCCESS);
+					notificationResponseDTO=notificationService
+							.sendNotification(notificationRequestDto, vidRequestDtoV2.getChannels(), email, phone);
+				}
 			} else {
 				notificationRequestDto.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_GEN_SUCCESS);
 				notificationResponseDTO = notificationService.sendNotification(notificationRequestDto);
