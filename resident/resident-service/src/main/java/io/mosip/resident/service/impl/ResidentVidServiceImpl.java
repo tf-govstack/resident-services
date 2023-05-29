@@ -140,6 +140,9 @@ public class ResidentVidServiceImpl implements ResidentVidService {
 	
 	@Value("${mosip.resident.create.vid.version}")
 	private String residentCreateVidVersion;
+	
+	@Value("${mosip.resident.notification.send}")
+	private boolean send;
 
 	@Autowired
 	private ObjectMapper mapper;
@@ -243,7 +246,8 @@ public class ResidentVidServiceImpl implements ResidentVidService {
 				
 				if(vidResponse.getRestoredVid()!= null) {
 					additionalAttributes = new HashMap<>();
-					additionalAttributes.put(TemplateEnum.VID.name(), vidResponse.getRestoredVid().getVID());
+					String maskedVid = utility.maskVid(vidResponse.getRestoredVid().getVID());
+     	  			additionalAttributes.put(TemplateEnum.VID.name(),maskedVid);
 					notificationRequestDtoV2.setAdditionalAttributes(additionalAttributes);
 					notificationRequestDtoV2.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_REV_SUCCESS);
 					notificationResponseDTO=notificationService
@@ -564,18 +568,39 @@ public class ResidentVidServiceImpl implements ResidentVidService {
 			Map<String, Object> additionalAttributes = new HashMap<>();
 			additionalAttributes.put(TemplateEnum.VID.name(), vid);
 			notificationRequestDto.setAdditionalAttributes(additionalAttributes);
-
+			
 			NotificationResponseDTO notificationResponseDTO;
-			if(isV2Request) {
+			if(isV2Request && send == true) {
 				NotificationRequestDtoV2 notificationRequestDtoV2=(NotificationRequestDtoV2) notificationRequestDto;
 				notificationRequestDtoV2.setTemplateType(TemplateType.SUCCESS);
 				notificationRequestDtoV2.setRequestType(RequestType.REVOKE_VID);
 				notificationRequestDtoV2.setEventId(eventId);
 
 				notificationResponseDTO=notificationService.sendNotification(notificationRequestDto);
+				
+				if(vidResponse.getRestoredVid() != null) {
+					additionalAttributes = new HashMap<>();
+					String maskedVid = utility.maskVid(vidResponse.getRestoredVid().getVID());
+					additionalAttributes.put(TemplateEnum.VID.name(),maskedVid);
+
+					notificationRequestDtoV2.setAdditionalAttributes(additionalAttributes);
+					notificationRequestDtoV2.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_GEN_SUCCESS);
+					
+					notificationResponseDTO=notificationService.sendNotification(notificationRequestDto);
+				}
 			} else {
+				if(!isV2Request && send == true) 
 				notificationRequestDto.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_REV_SUCCESS);
 				notificationResponseDTO = notificationService.sendNotification(notificationRequestDto);
+				if(vidResponse.getRestoredVid() != null) {
+					additionalAttributes = new HashMap<>();
+					String maskedVid = utility.maskVid(vidResponse.getRestoredVid().getVID());
+					additionalAttributes.put(TemplateEnum.VID.name(),maskedVid);
+					
+					notificationRequestDto.setAdditionalAttributes(additionalAttributes);
+					notificationRequestDto.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_GEN_SUCCESS);					
+					notificationResponseDTO = notificationService.sendNotification(notificationRequestDto);
+				}
 			}
 			audit.setAuditRequestDto(EventEnum.getEventEnumWithValue(EventEnum.SEND_NOTIFICATION_SUCCESS,
 					requestDto.getTransactionID(), "Request to revoke VID"));

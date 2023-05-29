@@ -137,6 +137,9 @@ public class Utility {
 	private String phoneMaskFunction;
 	
 	@Value("${resident.data.mask.function}")
+	private String vidMaskFunction;
+	
+	@Value("${resident.data.mask.function}")
 	private String maskingFunction;
 	
 	@Value("${resident.ui.track-service-request-url}")
@@ -370,6 +373,10 @@ public class Utility {
 
 	public String maskPhone(String phone) {
 		return maskData(phone, phoneMaskFunction);
+	}
+	
+	public String maskVid(String maskedVid) {
+		return maskData(maskedVid, vidMaskFunction);
 	}
 
 	public String convertToMaskDataFormat(String maskData) {
