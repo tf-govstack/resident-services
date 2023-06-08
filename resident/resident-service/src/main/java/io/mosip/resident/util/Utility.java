@@ -372,8 +372,8 @@ public class Utility {
 		return maskData(phone, phoneMaskFunction);
 	}
 
-	public String convertToMaskDataFormat(String Data) {
-		return maskData(Data, maskingFunction);
+	public String convertToMaskDataFormat(String data) {
+		return maskData(data, maskingFunction);
 	}
 
 	public String getPassword(List<String> attributeValues) {
