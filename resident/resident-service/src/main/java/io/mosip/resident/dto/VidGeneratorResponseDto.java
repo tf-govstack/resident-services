@@ -18,7 +18,7 @@ public class VidGeneratorResponseDto {
 	
 	private VidGeneratorResponseDto restoredVid;
 	
-	
+
 	@JsonProperty("UIN")
 	private String UIN;
 	
