@@ -261,17 +261,17 @@ public class ResidentVidServiceImpl implements ResidentVidService {
 				notificationRequestDto.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_GEN_SUCCESS);
 				notificationResponseDTO = notificationService.sendNotification(notificationRequestDto);
 				
-				logger.info("Sending notification for generated vid, notification enabled: " + isNotificationEnabled);
+				logger.info("Sending notification for revoked vid, notification enabled: " + isNotificationEnabled);
 				if(vidResponse.getRestoredVid() != null && isNotificationEnabled == true) {
 					additionalAttributes = new HashMap<>();
 					String maskedVid = utility.convertToMaskDataFormat(vidResponse.getRestoredVid().getVID());
 					additionalAttributes.put(TemplateEnum.VID.name(), maskedVid);
 					notificationRequestDto.setAdditionalAttributes(additionalAttributes);
-					logger.info(maskedVid);
+					logger.info("Sending notification for revoked vid, notification enabled: " + isNotificationEnabled);
 					notificationRequestDto.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_REV_SUCCESS);
 					notificationResponseDTO = notificationService.sendNotification(notificationRequestDto);
 				}
-				logger.info("Sending notification for generated vid, notification enabled: " + isNotificationEnabled);
+				logger.info("Sending notification for revoked vid, notification enabled: " + isNotificationEnabled);
 			}
 			audit.setAuditRequestDto(EventEnum.getEventEnumWithValue(EventEnum.SEND_NOTIFICATION_SUCCESS,
 					requestDto.getTransactionID(), "Request to generate VID"));
