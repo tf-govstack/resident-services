@@ -142,7 +142,7 @@ public class ResidentVidServiceImpl implements ResidentVidService {
 	private String residentCreateVidVersion;
 	
 	@Value("${mosip.resident.notification.enabled}")
-	private boolean isNotificationEnabled;
+	private Boolean isNotificationEnabled;
 
 	@Autowired
 	private ObjectMapper mapper;
@@ -233,7 +233,7 @@ public class ResidentVidServiceImpl implements ResidentVidService {
 			String masked_Vid = utility.convertToMaskDataFormat(vidResponse.getVID());
 			additionalAttributes.put(TemplateEnum.VID.name(), masked_Vid);
 			notificationRequestDto.setAdditionalAttributes(additionalAttributes);
-
+			
 			NotificationResponseDTO notificationResponseDTO;
 			if(isV2Request) {
 				VidRequestDtoV2 vidRequestDtoV2 = (VidRequestDtoV2) requestDto;
@@ -245,27 +245,33 @@ public class ResidentVidServiceImpl implements ResidentVidService {
 				notificationResponseDTO=notificationService
 						.sendNotification(notificationRequestDto, vidRequestDtoV2.getChannels(), email, phone);
 				
+				logger.info("Sending notification for revoked vid, notification enabled: " + isNotificationEnabled);
 				if(vidResponse.getRestoredVid() != null && isNotificationEnabled == true) {
 					additionalAttributes = new HashMap<>();
 					String maskedVid = utility.convertToMaskDataFormat(vidResponse.getRestoredVid().getVID());
      	  			additionalAttributes.put(TemplateEnum.VID.name(), maskedVid);
 					notificationRequestDtoV2.setAdditionalAttributes(additionalAttributes);
+					logger.info("Sending notification for revoked vid, notification enabled: " + isNotificationEnabled);
 					notificationRequestDtoV2.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_REV_SUCCESS);
 					notificationResponseDTO=notificationService
 							.sendNotification(notificationRequestDto, vidRequestDtoV2.getChannels(), email, phone);
 				}
+				logger.info("Sending notification for revoked vid, notification enabled: " + isNotificationEnabled);
 			} else {
 				notificationRequestDto.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_GEN_SUCCESS);
 				notificationResponseDTO = notificationService.sendNotification(notificationRequestDto);
 				
+				logger.info("Sending notification for revoked vid, notification enabled: " + isNotificationEnabled);
 				if(vidResponse.getRestoredVid() != null && isNotificationEnabled == true) {
 					additionalAttributes = new HashMap<>();
 					String maskedVid = utility.convertToMaskDataFormat(vidResponse.getRestoredVid().getVID());
 					additionalAttributes.put(TemplateEnum.VID.name(), maskedVid);
 					notificationRequestDto.setAdditionalAttributes(additionalAttributes);
+					logger.info("Sending notification for revoked vid, notification enabled: " + isNotificationEnabled);
 					notificationRequestDto.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_REV_SUCCESS);
 					notificationResponseDTO = notificationService.sendNotification(notificationRequestDto);
 				}
+				logger.info("Sending notification for revoked vid, notification enabled: " + isNotificationEnabled);
 			}
 			audit.setAuditRequestDto(EventEnum.getEventEnumWithValue(EventEnum.SEND_NOTIFICATION_SUCCESS,
 					requestDto.getTransactionID(), "Request to generate VID"));
@@ -581,6 +587,7 @@ public class ResidentVidServiceImpl implements ResidentVidService {
 
 				notificationResponseDTO=notificationService.sendNotification(notificationRequestDto);
 				
+				logger.info("Sending notification for generated vid, notification enabled: " + isNotificationEnabled);
 				if(vidResponse.getRestoredVid() != null && isNotificationEnabled == true) {
 					additionalAttributes = new HashMap<>();
 					String maskedVid = utility.convertToMaskDataFormat(vidResponse.getRestoredVid().getVID());
@@ -589,21 +596,26 @@ public class ResidentVidServiceImpl implements ResidentVidService {
 					notificationRequestDtoV2.setAdditionalAttributes(additionalAttributes);
 					notificationRequestDtoV2.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_GEN_SUCCESS);
 					
+					logger.info("Sending notification for generated vid, notification enabled: " + isNotificationEnabled);					
 					notificationResponseDTO=notificationService.sendNotification(notificationRequestDto);
 				}
+				logger.info("Sending notification for generated vid, notification enabled: " + isNotificationEnabled);
 			} else { 
 				notificationRequestDto.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_REV_SUCCESS);
 				notificationResponseDTO = notificationService.sendNotification(notificationRequestDto);
 				
+				logger.info("Sending notification for generated vid, notification enabled: " + isNotificationEnabled);
 				if(vidResponse.getRestoredVid() != null && isNotificationEnabled == true) {
 					additionalAttributes = new HashMap<>();
 					String maskedVid = utility.convertToMaskDataFormat(vidResponse.getRestoredVid().getVID());
 					additionalAttributes.put(TemplateEnum.VID.name(), maskedVid);
 					
 					notificationRequestDto.setAdditionalAttributes(additionalAttributes);
-					notificationRequestDto.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_GEN_SUCCESS);					
+					notificationRequestDto.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_GEN_SUCCESS);
+					logger.info("Sending notification for generated vid, notification enabled: " + isNotificationEnabled);
 					notificationResponseDTO = notificationService.sendNotification(notificationRequestDto);
 				}
+				logger.info("Sending notification for generated vid, notification enabled: " + isNotificationEnabled);
 			}
 			audit.setAuditRequestDto(EventEnum.getEventEnumWithValue(EventEnum.SEND_NOTIFICATION_SUCCESS,
 					requestDto.getTransactionID(), "Request to revoke VID"));
