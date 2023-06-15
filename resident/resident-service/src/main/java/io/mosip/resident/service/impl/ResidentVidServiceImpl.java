@@ -142,7 +142,7 @@ public class ResidentVidServiceImpl implements ResidentVidService {
 	private String residentCreateVidVersion;
 	
 	@Value("${mosip.resident.notification.enabled}")
-	private Boolean isNotificationEnabled;
+	private boolean isNotificationEnabled;
 
 	@Autowired
 	private ObjectMapper mapper;
