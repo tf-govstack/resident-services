@@ -267,6 +267,9 @@ public class ResidentVidServiceImpl implements ResidentVidService {
 					notificationResponseDTO = notificationService.sendNotification(notificationRequestDto);
 				}
 			}
+			else {
+				notificationResponseDTO.setMessage("Vid generated successfully");
+			}
 			audit.setAuditRequestDto(EventEnum.getEventEnumWithValue(EventEnum.SEND_NOTIFICATION_SUCCESS,
 					requestDto.getTransactionID(), "Request to generate VID"));
 			// create response dto
