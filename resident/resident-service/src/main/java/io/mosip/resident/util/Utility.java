@@ -82,6 +82,9 @@ import io.mosip.resident.exception.ResidentServiceCheckedException;
 import io.mosip.resident.exception.ResidentServiceException;
 import io.mosip.resident.repository.ResidentTransactionRepository;
 import io.mosip.resident.service.impl.IdentityServiceImpl;
+import io.mosip.resident.dto.LanguageDto;
+import io.mosip.resident.dto.LanguageResponseDto;
+import io.mosip.resident.util.ResidentServiceRestClient;
 
 /**
  * @author Girish Yarru
@@ -90,11 +93,14 @@ import io.mosip.resident.service.impl.IdentityServiceImpl;
 
 @Component
 public class Utility {
-
+	
+	
 	private static final String EVENT_ID_PLACEHOLDER = "{eventId}";
 
 	private static final Logger logger = LoggerConfiguration.logConfig(Utility.class);
 
+	private static final String METHOD_LANGCODE_NATIVE_NAME = "getLangCodeFromNativeName";
+	
 	@Autowired
 	private ResidentServiceRestClient residentServiceRestClient;
 
@@ -119,7 +125,8 @@ public class Utility {
 
 	@Autowired
 	private Utilities utilities;
-
+	
+	private static final String CLASS_UTILITY = "Utility";
 	private static final String IDENTITY = "identity";
 	private static final String VALUE = "value";
 	private static String regProcessorIdentityJson = "";
@@ -281,7 +288,7 @@ public class Utility {
 		return attributes;
 	}
 
-	private Set<String> getPreferredLanguage(JSONObject demographicIdentity) {
+	private Set<String> getPreferredLanguage(JSONObject demographicIdentity) throws ResidentServiceException{
 		String preferredLang = null;
 		String preferredLangAttribute = env.getProperty("mosip.default.user-preferred-language-attribute");
 		if (!StringUtils.isBlank(preferredLangAttribute)) {
@@ -290,14 +297,65 @@ public class Utility {
 				preferredLang = String.valueOf(object);
 				if(preferredLang.contains(ResidentConstants.COMMA)){
 					String[] preferredLangArray = preferredLang.split(ResidentConstants.COMMA);
-					return Set.of(preferredLangArray);
+					String[] preferredLangCodeArray = new String[preferredLangArray.length];
+					
+					for (int i = 0; i < preferredLangArray.length; i++) {
+						preferredLangCodeArray[i] = getLangCodeFromNativeName(preferredLangArray[i]);
+					}
+					return Set.of(preferredLangCodeArray);
 				}
 			}
 		}
 		if(preferredLang!=null){
+			preferredLang = getLangCodeFromNativeName(preferredLang);
 			return Set.of(preferredLang);
 		}
 		return Set.of();
+	}
+	
+	private String getLangCodeFromNativeName(String nativeName) throws ResidentServiceException{
+		String langCode = null;
+		try {
+			ResponseWrapper<LanguageResponseDto> response = (ResponseWrapper) residentServiceRestClient
+					.getApi(ApiName.LANGUAGE, null, "", "", ResponseWrapper.class);
+
+			if (response.getErrors() != null && response.getErrors().size() > 0) {
+				response.getErrors().stream().forEach(r -> {
+					logger.error(LoggerFileConstant.APPLICATIONID.toString(), LoggerFileConstant.UIN.name(),"",
+							"Utility::getLangCodeFromNativeName():: error with error message " + r.getMessage());
+				});
+			}
+
+			LanguageResponseDto languageResponseDto = objectMapper.readValue(objectMapper.writeValueAsString(response.getResponse()), LanguageResponseDto.class);
+
+			logger.debug(LoggerFileConstant.APPLICATIONID.toString(), LoggerFileConstant.UIN.name(),"",
+					"Utility::getLangCodeFromNativeName()::exit");
+			for (LanguageDto dto : languageResponseDto.getLanguages()) {
+				if (dto.getNativeName().equalsIgnoreCase(nativeName) || dto.getCode().equalsIgnoreCase(nativeName)
+						|| dto.getName().equalsIgnoreCase(nativeName)) {
+					langCode = dto.getCode();
+				}
+			}
+
+		} catch (Exception e) {
+			logger.error(LoggerFileConstant.APPLICATIONID.toString(), LoggerFileConstant.UIN.name(),"",
+					"Utility::getLangCodeFromNativeName():: error with error message " + e.getMessage());
+			if (e.getCause() instanceof HttpClientErrorException) {
+				HttpClientErrorException httpClientException = (HttpClientErrorException) e.getCause();
+				throw new ResidentServiceException(ResidentErrorCode.API_RESOURCE_ACCESS_EXCEPTION.getErrorCode(),
+						httpClientException.getResponseBodyAsString());
+
+			} else if (e.getCause() instanceof HttpServerErrorException) {
+				HttpServerErrorException httpServerException = (HttpServerErrorException) e.getCause();
+				throw new ResidentServiceException(ResidentErrorCode.API_RESOURCE_ACCESS_EXCEPTION.getErrorCode(),
+						httpServerException.getResponseBodyAsString());
+			} else {
+				throw new ResidentServiceException(ResidentErrorCode.API_RESOURCE_ACCESS_EXCEPTION.getErrorCode(),
+						ResidentErrorCode.API_RESOURCE_ACCESS_EXCEPTION.getErrorMessage() + e.getMessage(), e);
+			}
+		}
+		return langCode;
+
 	}
 
 	private Set<String> getDataCapturedLanguages(JSONObject mapperIdentity, JSONObject demographicIdentity)
