@@ -252,7 +252,8 @@ public class UtilityTest {
 		response.setResponse(idRepoResponseDto);
 		Mockito.when(residentServiceRestClient.getApi(any(), any(), anyString(),
 				any(), any(Class.class))).thenReturn(response);
-
+		
+		Mockito.doReturn("eng").when(utilitySpy).getLangCodeFromNativeName(anyString());
 		Mockito.doReturn("preferredLang").when(env).getProperty("mosip.default.user-preferred-language-attribute");
 		Map<String, Object> attributes = utilitySpy.getMailingAttributes("3527812406", new HashSet<String>());
 		assertEquals("eng", attributes.get("preferredLang"));
