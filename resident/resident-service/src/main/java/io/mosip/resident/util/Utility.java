@@ -94,12 +94,9 @@ import io.mosip.resident.util.ResidentServiceRestClient;
 @Component
 public class Utility {
 	
-	
 	private static final String EVENT_ID_PLACEHOLDER = "{eventId}";
 
 	private static final Logger logger = LoggerConfiguration.logConfig(Utility.class);
-
-	private static final String METHOD_LANGCODE_NATIVE_NAME = "getLangCodeFromNativeName";
 	
 	@Autowired
 	private ResidentServiceRestClient residentServiceRestClient;
@@ -126,7 +123,6 @@ public class Utility {
 	@Autowired
 	private Utilities utilities;
 	
-	private static final String CLASS_UTILITY = "Utility";
 	private static final String IDENTITY = "identity";
 	private static final String VALUE = "value";
 	private static String regProcessorIdentityJson = "";
@@ -313,7 +309,7 @@ public class Utility {
 		return Set.of();
 	}
 	
-	private String getLangCodeFromNativeName(String nativeName) throws ResidentServiceException{
+	public String getLangCodeFromNativeName(String nativeName) throws ResidentServiceException{
 		String langCode = null;
 		try {
 			ResponseWrapper<LanguageResponseDto> response = (ResponseWrapper) residentServiceRestClient
