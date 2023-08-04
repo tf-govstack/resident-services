@@ -35,16 +35,21 @@ import io.mosip.kernel.core.http.ResponseWrapper;
 import io.mosip.kernel.core.templatemanager.spi.TemplateManager;
 import io.mosip.resident.constant.ApiName;
 import io.mosip.resident.constant.NotificationTemplateCode;
+import io.mosip.resident.constant.RequestType;
+import io.mosip.resident.constant.TemplateType;
 import io.mosip.resident.dto.NotificationRequestDto;
 import io.mosip.resident.dto.NotificationRequestDtoV2;
 import io.mosip.resident.dto.NotificationResponseDTO;
 import io.mosip.resident.dto.TemplateDto;
 import io.mosip.resident.dto.TemplateResponseDto;
+import io.mosip.resident.dto.VidResponseDto;
+import io.mosip.resident.dto.VidRevokeResponseDTO;
 import io.mosip.resident.exception.ApisResourceAccessException;
 import io.mosip.resident.exception.ResidentServiceCheckedException;
 import io.mosip.resident.exception.ResidentServiceException;
 import io.mosip.resident.service.NotificationService;
 import io.mosip.resident.service.ProxyIdRepoService;
+import io.mosip.resident.service.impl.ResidentVidServiceImpl;
 import io.mosip.resident.util.AuditUtil;
 import io.mosip.resident.util.JsonUtil;
 import io.mosip.resident.util.ResidentServiceRestClient;
@@ -56,10 +61,10 @@ import io.mosip.resident.validator.RequestValidator;
 @PowerMockIgnore({"com.sun.org.apache.xerces.*", "javax.xml.*", "org.xml.*", "javax.management.*"})
 @PrepareForTest({ JsonUtil.class, IOUtils.class, HashSet.class})
 public class NotificationServiceTest {
-	
-    @MockBean
-    private ProxyIdRepoService proxyIdRepoService;
-    
+
+	@MockBean
+	private ProxyIdRepoService proxyIdRepoService;
+
 	@InjectMocks
 	private NotificationService notificationService;
 
@@ -71,6 +76,9 @@ public class NotificationServiceTest {
 	
 	@Mock
 	private Environment env;
+
+	@InjectMocks
+	private ResidentVidServiceImpl residentVidService;
 
 	@Mock
 	private ResidentServiceRestClient restClient;
@@ -141,6 +149,94 @@ public class NotificationServiceTest {
 		smsNotificationResponse.setResponse(notificationResp);
 		Mockito.when(restClient.postApi(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(Class.class))).thenReturn(smsNotificationResponse);
 		Mockito.doNothing().when(audit).setAuditRequestDto(Mockito.any());
+
+	}
+
+	@Test
+	public void generateVid_IsEnabledTrue()
+			throws ApisResourceAccessException, ResidentServiceCheckedException, IOException {
+		ReflectionTestUtils.setField(residentVidService, "isNotificationEnabled", true);
+		NotificationRequestDto notificationRequestDto = new NotificationRequestDto();
+		notificationRequestDto.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_GEN_SUCCESS);
+		Mockito.when(utility.getMailingAttributes(Mockito.any(), Mockito.any())).thenReturn(mailingAttributes);
+		NotificationResponseDTO response = notificationService.sendNotification(notificationRequestDto);
+		Mockito.when(requestValidator.emailValidator(Mockito.anyString())).thenReturn(true);
+		Mockito.when(requestValidator.phoneValidator(Mockito.anyString())).thenReturn(true);
+		assertEquals(SMS_EMAIL_SUCCESS, response.getMessage());
+
+	}
+
+	@Test
+	public void generateVid_IsEnabledFalse()
+			throws ApisResourceAccessException, ResidentServiceCheckedException, IOException {
+		ReflectionTestUtils.setField(residentVidService, "isNotificationEnabled", false);
+		NotificationResponseDTO notificationResponseDTO = new NotificationResponseDTO();
+		Mockito.when(utility.getMailingAttributes(Mockito.any(), Mockito.any())).thenReturn(mailingAttributes);
+		notificationResponseDTO.setMessage("Vid generated successfully");
+	}
+
+	@Test
+	public void generateVidV2Request_IsEnabledTrue()
+			throws ApisResourceAccessException, ResidentServiceCheckedException, IOException {
+		ReflectionTestUtils.setField(residentVidService, "isNotificationEnabled", true);
+		NotificationRequestDtoV2 notificationRequestDtoV2 = new NotificationRequestDtoV2();
+		notificationRequestDtoV2.setTemplateType(TemplateType.SUCCESS);
+		notificationRequestDtoV2.setRequestType(RequestType.GENERATE_VID);
+		notificationRequestDtoV2.setAdditionalAttributes(mailingAttributes);
+		NotificationResponseDTO response = notificationService.sendNotification(notificationRequestDtoV2);
+		assertEquals(SMS_EMAIL_SUCCESS, response.getMessage());
+
+	}
+
+	@Test
+	public void generateVidV2Request_IsEnabledFalse()
+			throws ApisResourceAccessException, ResidentServiceCheckedException, IOException {
+		ReflectionTestUtils.setField(residentVidService, "isNotificationEnabled", false);
+		VidResponseDto vidResponseDto = new VidResponseDto();
+		vidResponseDto.setMessage("Vid generated successfully");
+
+	}
+
+	@Test
+	public void revokeVid_IsEnabledTrue()
+			throws ApisResourceAccessException, ResidentServiceCheckedException, IOException {
+		ReflectionTestUtils.setField(residentVidService, "isNotificationEnabled", true);
+		NotificationRequestDto notificationRequestDto = new NotificationRequestDto();
+		notificationRequestDto.setTemplateTypeCode(NotificationTemplateCode.RS_VIN_REV_SUCCESS);
+		notificationRequestDto.setAdditionalAttributes(mailingAttributes);
+		NotificationResponseDTO response = notificationService.sendNotification(notificationRequestDto);
+		assertEquals(SMS_EMAIL_SUCCESS, response.getMessage());
+
+	}
+
+	@Test
+	public void revokeVid_IsEnabledFalse()
+			throws ApisResourceAccessException, ResidentServiceCheckedException, IOException {
+		ReflectionTestUtils.setField(residentVidService, "isNotificationEnabled", false);
+		NotificationResponseDTO notificationResponseDTO = new NotificationResponseDTO();
+		notificationResponseDTO.setMessage("Vid revoked successfully");
+
+	}
+
+	@Test
+	public void revokeVidV2Request_IsEnabledTrue()
+			throws ApisResourceAccessException, ResidentServiceCheckedException, IOException {
+		ReflectionTestUtils.setField(residentVidService, "isNotificationEnabled", true);
+		NotificationRequestDtoV2 notificationRequestDtoV2 = new NotificationRequestDtoV2();
+		notificationRequestDtoV2.setTemplateType(TemplateType.SUCCESS);
+		notificationRequestDtoV2.setRequestType(RequestType.REVOKE_VID);
+		notificationRequestDtoV2.setAdditionalAttributes(mailingAttributes);
+		NotificationResponseDTO response = notificationService.sendNotification(notificationRequestDtoV2);
+		assertEquals(SMS_EMAIL_SUCCESS, response.getMessage());
+
+	}
+
+	@Test
+	public void revokeVidV2Request_IsEnabledFalse()
+			throws ApisResourceAccessException, ResidentServiceCheckedException, IOException {
+		ReflectionTestUtils.setField(residentVidService, "isNotificationEnabled", false);
+		VidRevokeResponseDTO vidRevokeResponseDto = new VidRevokeResponseDTO();
+		vidRevokeResponseDto.setMessage("Vid revoked successfully");
 
 	}
 
